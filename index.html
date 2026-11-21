@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TiffinTrack | Management</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Arial,sans-serif;
+  background:#f4f5fb;
+  color:#20243a;
+  padding:20px;
+}
+.container{max-width:1050px;margin:auto}
+header{
+  background:linear-gradient(120deg,#29244e,#7566e8);
+  color:white;padding:28px;border-radius:20px;
+  margin-bottom:22px;
+}
+header h1{font-size:27px;margin-bottom:8px}
+header p{color:#ddd9ff;font-size:13px}
+.period{margin-top:14px;font-size:12px}
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:15px;margin-bottom:20px
+}
+.card{
+  background:white;padding:20px;border-radius:16px;
+  box-shadow:0 5px 20px #2222220b
+}
+.card p{font-size:13px;color:#777;margin-bottom:12px}
+.card h2{font-size:30px}
+.content{
+  display:grid;grid-template-columns:340px 1fr;
+  gap:18px
+}
+.panel{
+  background:white;padding:22px;border-radius:16px;
+  box-shadow:0 5px 20px #2222220b
+}
+h3{font-size:17px;margin-bottom:18px}
+label{display:block;font-size:12px;font-weight:bold;margin-bottom:8px}
+input{
+  width:100%;padding:12px;border:1px solid #e3e5ed;
+  border-radius:9px;margin-bottom:16px;font-size:14px
+}
+.counts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{
+  border:0;border-radius:9px;padding:12px;
+  cursor:pointer;font-weight:bold
+}
+.save{
+  width:100%;background:#6859e8;color:white;
+  margin-top:5px
+}
+.save:hover{background:#5143cc}
+table{width:100%;border-collapse:collapse}
+th,td{
+  padding:13px 8px;text-align:left;
+  border-bottom:1px solid #eee;font-size:12px
+}
+th{color:#888}
+.edit{background:#efedff;color:#6153d7}
+.delete{background:#fff0f0;color:#d34e5e}
+.actions{display:flex;gap:5px}
+.empty{text-align:center;padding:30px;color:#888}
+.export{background:#eeeaff;color:#594bd1;margin-bottom:12px}
+@media(max-width:750px){
+ .content{grid-template-columns:1fr}
+ .stats{grid-template-columns:1fr 1fr}
+ .stats .card:last-child{grid-column:span 2}
+ header h1{font-size:23px}
+ .panel{overflow-x:auto}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+<h1>🍱 TiffinTrack</h1>
+<p>Daily Tiffin Management Dashboard</p>
+<div class="period">19 November 2026 – 31 December 2026</div>
+</header>
+
+<div class="stats">
+<div class="card">
+<p>🌤️ Morning Total</p>
+<h2 id="morningTotal">0</h2>
+</div>
+<div class="card">
+<p>🌙 Night Total</p>
+<h2 id="nightTotal">0</h2>
+</div>
+<div class="card">
+<p>📦 Grand Total</p>
+<h2 id="grandTotal">0</h2>
+</div>
+</div>
+
+<div class="content">
+
+<div class="panel">
+<h3 id="formTitle">Add Daily Entry</h3>
+
+<label>Select Date</label>
+<input type="date" id="date"
+min="2026-11-19" max="2026-12-31">
+
+<div class="counts">
+<div>
+<label>🌤️ Morning Tiffin</label>
+<input type="number" id="morning" min="0" value="0">
+</div>
+<div>
+<label>🌙 Night Tiffin</label>
+<input type="number" id="night" min="0" value="0">
+</div>
+</div>
+
+<button class="save" id="saveBtn" onclick="saveEntry()">
+Save Entry
+</button>
+
+<button id="cancelBtn" onclick="resetForm()"
+style="display:none;width:100%;margin-top:8px">
+Cancel Edit
+</button>
+
+</div>
+
+<div class="panel">
+<h3>📋 Daily Records</h3>
+<button class="export" onclick="exportCSV()">↓ Export CSV</button>
+
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Morning</th>
+<th>Night</th>
+<th>Total</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="records"></tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<script>
+let entries = JSON.parse(localStorage.getItem("tiffinData")) || {};
+let editDate = null;
+
+const dateInput = document.getElementById("date");
+const morningInput = document.getElementById("morning");
+const nightInput = document.getElementById("night");
+
+function saveEntry(){
+ const date = dateInput.value;
+ const morning = Number(morningInput.value);
+ const night = Number(nightInput.value);
+
+ if(!date || date < "2026-11-19" || date > "2026-12-31"){
+   alert("Please select a date between 19 November and 31 December 2026.");
+   return;
+ }
+
+ if(!Number.isInteger(morning) || !Number.isInteger(night) ||
+    morning < 0 || night < 0){
+   alert("Enter valid tiffin quantities.");
+   return;
+ }
+
+ entries[date] = {morning,night};
+
+ localStorage.setItem("tiffinData",JSON.stringify(entries));
+
+ resetForm();
+ render();
+ alert("Entry saved successfully!");
+}
+
+function render(){
+ let morningTotal = 0;
+ let nightTotal = 0;
+
+ const records = document.getElementById("records");
+ records.innerHTML = "";
+
+ Object.keys(entries).sort().reverse().forEach(date=>{
+   const item = entries[date];
+
+   morningTotal += item.morning;
+   nightTotal += item.night;
+
+   const total = item.morning + item.night;
+
+   const tr = document.createElement("tr");
+
+   const values = [
+     new Date(date+"T00:00:00").toLocaleDateString("en-IN"),
+     item.morning,
+     item.night,
+     total
+   ];
+
+   values.forEach(value=>{
+     const td = document.createElement("td");
+     td.textContent = value;
+     tr.appendChild(td);
+   });
+
+   const action = document.createElement("td");
+   const wrapper = document.createElement("div");
+   wrapper.className = "actions";
+
+   const edit = document.createElement("button");
+   edit.className = "edit";
+   edit.textContent = "Edit";
+   edit.onclick = ()=>editEntry(date);
+
+   const del = document.createElement("button");
+   del.className = "delete";
+   del.textContent = "Delete";
+   del.onclick = ()=>deleteEntry(date);
+
+   wrapper.append(edit,del);
+   action.appendChild(wrapper);
+   tr.appendChild(action);
+   records.appendChild(tr);
+ });
+
+ if(Object.keys(entries).length===0){
+   records.innerHTML =
+   '<tr><td colspan="5" class="empty">No records yet</td></tr>';
+ }
+
+ document.getElementById("morningTotal").textContent=morningTotal;
+ document.getElementById("nightTotal").textContent=nightTotal;
+ document.getElementById("grandTotal").textContent=morningTotal+nightTotal;
+}
+
+function editEntry(date){
+ const item = entries[date];
+
+ dateInput.value=date;
+ morningInput.value=item.morning;
+ nightInput.value=item.night;
+
+ editDate=date;
+ document.getElementById("formTitle").textContent="Edit Daily Entry";
+ document.getElementById("saveBtn").textContent="Update Entry";
+ document.getElementById("cancelBtn").style.display="block";
+
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function deleteEntry(date){
+ if(confirm("Are you sure you want to delete this entry?")){
+   delete entries[date];
+   localStorage.setItem("tiffinData",JSON.stringify(entries));
+   render();
+ }
+}
+
+function resetForm(){
+ dateInput.value="";
+ morningInput.value=0;
+ nightInput.value=0;
+ editDate=null;
+
+ document.getElementById("formTitle").textContent="Add Daily Entry";
+ document.getElementById("saveBtn").textContent="Save Entry";
+ document.getElementById("cancelBtn").style.display="none";
+}
+
+function exportCSV(){
+ const rows=[["Date","Morning","Night","Total"]];
+
+ Object.keys(entries).sort().forEach(date=>{
+   const e=entries[date];
+   rows.push([date,e.morning,e.night,e.morning+e.night]);
+ });
+
+ const csv=rows.map(row=>row.join(",")).join("\n");
+ const blob=new Blob([csv],{type:"text/csv"});
+ const link=document.createElement("a");
+
+ link.href=URL.createObjectURL(blob);
+ link.download="Tiffin-Records.csv";
+ link.click();
+ URL.revokeObjectURL(link.href);
+}
+
+render();
+</script>
+
+</body>
+  </html>
+  
